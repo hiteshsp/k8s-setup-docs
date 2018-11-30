@@ -25,24 +25,21 @@ In order to achieve this we need to have :
 1.  cfssl: It's used to generate openssl certs for the kubernetes components.
 
 ```
-  wget -q --show-progress --https-only --timestamping \
-  https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
-  https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 
+    wget -q --show-progress --https-only --timestamping \
+    https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
+    https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 
 ```
 
-``` chmod +x cfssl_linux-amd64 cfssljson_linux-amd64 ```
-
-``` sudo mv cfssl_linux-amd64 /usr/local/bin/cfssl ```
-
-``` sudo mv cfssljson_linux-amd64 /usr/local/bin/cfssljson ```
+``` chmod +x cfssl_linux-amd64 cfssljson_linux-amd64 
+    sudo mv cfssl_linux-amd64 /usr/local/bin/cfssl 
+    sudo mv cfssljson_linux-amd64 /usr/local/bin/cfssljson
+```
 
 2. kubectl: We need it to talk to the k8s cluster
 
 ```
     wget https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubectl
-
     chmod +x kubectl
-
     sudo mv kubectl /usr/local/bin/
 ```
 ## SSL Certificates Generation
@@ -86,6 +83,7 @@ cat > ca-csr.json <<EOF
 }
 EOF
 ```
+
 ``` 
 cfssl gencert -initca ca-csr.json | cfssljson -bare ca 
 ```
@@ -115,6 +113,7 @@ cat > admin-csr.json <<EOF
 }
 EOF
 ```
+
 ```
 cfssl gencert \
   -ca=ca.pem \
@@ -149,10 +148,13 @@ cat > ${instance}-csr.json <<EOF
   ]
 }
 EOF
+```
 
-EXTERNAL_IP=<Public IP of the Machine>
+``` EXTERNAL_IP=<Public IP of the Machine> ```
 
-INTERNAL_IP=<Private IP of the Machine>
+``` INTERNAL_IP=<Private IP of the Machine> ```
+
+```
 cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
@@ -165,7 +167,8 @@ cfssl gencert \
 > As I have only one worker node there is only one set of certificates.
  
  #### Controller Manager Certificate
- ```
+
+```
  cat > kube-controller-manager-csr.json <<EOF
 {
   "CN": "system:kube-controller-manager",
@@ -185,6 +188,7 @@ cfssl gencert \
 }
 EOF
 ```
+
 ```
 cfssl gencert \
   -ca=ca.pem \
@@ -193,8 +197,10 @@ cfssl gencert \
   -profile=kubernetes \
   kube-controller-manager-csr.json | cfssljson -bare kube-controller-manager
  ```
- #### Kubeproxy Client Certificate
- ``` 
+
+#### Kubeproxy Client Certificate
+
+``` 
  cat > kube-proxy-csr.json <<EOF
  {
   "CN": "system:kube-proxy",
@@ -214,6 +220,7 @@ cfssl gencert \
 }
 EOF
 ```
+
 ```
 cfssl gencert \
   -ca=ca.pem \
@@ -245,6 +252,7 @@ cat > kube-scheduler-csr.json <<EOF
 }
 EOF
 ```
+
 ```
 cfssl gencert \
   -ca=ca.pem \
@@ -253,7 +261,9 @@ cfssl gencert \
   -profile=kubernetes \
   kube-scheduler-csr.json | cfssljson -bare kube-scheduler
 ```
+
 #### Kubernetes API Server Certificate
+
 ```
 cat > kubernetes-csr.json <<EOF
 {
@@ -274,6 +284,7 @@ cat > kubernetes-csr.json <<EOF
 }
 EOF
 ```
+
 ```
 cfssl gencert \
    -ca=ca.pem \
@@ -283,6 +294,7 @@ cfssl gencert \
    -profile=kubernetes \
     kubernetes-csr.json | cfssljson -bare kubernetes
 ```
+
 The above steps needs to done carefully as the nodes will fail to communicate if the IP is missed in list.
 We can't talk with k8s apiserver
 
@@ -308,8 +320,9 @@ The Kuberenetes Controller Manager leverarges a key pair to generate and sign se
   ]
 }
 EOF
- ```
- ```
+```
+
+```
  cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
@@ -317,6 +330,7 @@ EOF
   -profile=kubernetes \
   service-account-csr.json | cfssljson -bare service-account
 ```
+
 Now the crucial part distributing these certificates to the machines
 
 | Client Certificates       | Server Certificates        |
@@ -333,17 +347,17 @@ Except Admin we will use all the client certificates to generate client authenti
 
 These are the certificates should be copied into worker nodes
 
-* ca.pem
-* <worker>-key.pem
-* <worker>.pem
+* `ca.pem`
+* `<worker>-key.pem`
+* `<worker>.pem`
 
 #### Copying the certs Controller Nodes
 
 These are the certificates should be present in the Controller Nodes
 
-* ca.pem
-* ca-key.pem
-* kubernetes-key.pem
-* kubernetes.pem 
-* service-account-key.pem 
-* service-account.pem
+* `ca.pem`
+* `ca-key.pem`
+* `kubernetes-key.pem`
+* `kubernetes.pem`
+* `service-account-key.pem` 
+* `service-account.pem`
