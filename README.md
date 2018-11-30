@@ -8,7 +8,7 @@ This setup will walk you through in installing each and every component from the
 Yes you heard me right !
 And the emphasis is on production environment.
 
->*Note*
+> *Note*
 >We are using the AWS Cloud for the whole process. It's isn't native to AWS we can run on any cloud.
 >It was the option for us.
 
@@ -24,9 +24,11 @@ In order to achieve this we need to have :
 ## Utilities needed:
 1.  cfssl: It's used to generate openssl certs for the kubernetes components.
 
-``` wget -q --show-progress --https-only --timestamping \
+```
+  wget -q --show-progress --https-only --timestamping \
   https://pkg.cfssl.org/R1.2/cfssl_linux-amd64 \
-  https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 ```
+  https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64 
+```
 
 ``` chmod +x cfssl_linux-amd64 cfssljson_linux-amd64 ```
 
@@ -36,7 +38,8 @@ In order to achieve this we need to have :
 
 2. kubectl: We need it to talk to the k8s cluster
 
-``` wget https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubectl
+```
+    wget https://storage.googleapis.com/kubernetes-release/release/v1.12.0/bin/linux/amd64/kubectl
 
     chmod +x kubectl
 
@@ -45,7 +48,8 @@ In order to achieve this we need to have :
 ## SSL Certificates Generation
 ### CA Authority
 
-``` cat > ca-config.json <<EOF
+``` 
+cat > ca-config.json <<EOF
 {
   "signing": {
     "default": {
@@ -61,6 +65,7 @@ In order to achieve this we need to have :
 }
 EOF
 ```
+
 ```
 cat > ca-csr.json <<EOF
 {
@@ -81,13 +86,17 @@ cat > ca-csr.json <<EOF
 }
 EOF
 ```
-``` cfssl gencert -initca ca-csr.json | cfssljson -bare ca ```
+``` 
+cfssl gencert -initca ca-csr.json | cfssljson -bare ca 
+```
 The above command will generate certificates for CA using csr mentioned above.
 
 ### Client and Server Certificates
 This section will generate certificates for k8s components and a client cerficate for k8s admin user
+
 #### The Admin Client Certificate
-```cat > admin-csr.json <<EOF
+```
+cat > admin-csr.json <<EOF
 {
   "CN": "admin",
   "key": {
@@ -104,8 +113,10 @@ This section will generate certificates for k8s components and a client cerficat
     }
   ]
 }
-EOF```
-```cfssl gencert \
+EOF
+```
+```
+cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
   -config=ca-config.json \
@@ -113,12 +124,14 @@ EOF```
   admin-csr.json | cfssljson -bare admin 
 ```
 The above command will generate the admin certificate 
-#### Kubelet Certificate generation
+
+#### Kubelet Certificate Generation
 Kubernetes uses a special-purpose authorization mode called Node Authorizer, that specifically authorizes API requests made by Kubelets.
 Kubelets must use a credential that identifies them as being in the 'system:nodes' group, with a username of system:node:<nodeName>
 Generate the certificates using the below steps to add your worker node as authorized to perform API requests
 
-``` cat > ${instance}-csr.json <<EOF
+```
+cat > ${instance}-csr.json <<EOF
 {
   "CN": "system:node:${instance}",
   "key": {
@@ -183,7 +196,7 @@ cfssl gencert \
  #### Kubeproxy Client Certificate
  ``` 
  cat > kube-proxy-csr.json <<EOF
-{
+ {
   "CN": "system:kube-proxy",
   "key": {
     "algo": "rsa",
@@ -239,7 +252,7 @@ cfssl gencert \
   -config=ca-config.json \
   -profile=kubernetes \
   kube-scheduler-csr.json | cfssljson -bare kube-scheduler
-  ```
+```
 #### Kubernetes API Server Certificate
 ```
 cat > kubernetes-csr.json <<EOF
@@ -261,16 +274,18 @@ cat > kubernetes-csr.json <<EOF
 }
 EOF
 ```
-``` cfssl gencert \
+```
+cfssl gencert \
    -ca=ca.pem \
    -ca-key=ca-key.pem \
    -config=ca-config.json \
    -hostname=<List of IP's in the K8s cluster>,<API Server Public IP>,127.0.0.1,kubernetes.default \
    -profile=kubernetes \
     kubernetes-csr.json | cfssljson -bare kubernetes
-  ```
-  The above steps needs to done carefully as the nodes will fail to communicate if the IP is missed in list.
-  We can't talk with k8s apiserver
+```
+The above steps needs to done carefully as the nodes will fail to communicate if the IP is missed in list.
+We can't talk with k8s apiserver
+
 #### Service Account Key Pair
 The Kuberenetes Controller Manager leverarges a key pair to generate and sign service account tokens.
 
@@ -318,18 +333,17 @@ Except Admin we will use all the client certificates to generate client authenti
 
 These are the certificates should be copied into worker nodes
 
-*ca.pem
-*<worker>-key.pem
-*<worker>.pem
+* ca.pem
+* <worker>-key.pem
+* <worker>.pem
 
 #### Copying the certs Controller Nodes
 
 These are the certificates should be present in the Controller Nodes
 
-*ca.pem
-*ca-key.pem
-*kubernetes-key.pem
-*kubernetes.pem 
-*service-account-key.pem 
-*service-account.pem
-
+* ca.pem
+* ca-key.pem
+* kubernetes-key.pem
+* kubernetes.pem 
+* service-account-key.pem 
+* service-account.pem
